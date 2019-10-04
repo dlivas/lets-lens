@@ -211,8 +211,8 @@ fmodify l f a =
   -> f b
   -> a
   -> f a
-(|=) l  b =
-  fmodify l (const b)
+(|=) l b' =
+  fmodify l (const b')
 
 infixl 5 |=
 

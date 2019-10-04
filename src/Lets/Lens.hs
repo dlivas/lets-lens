@@ -149,15 +149,16 @@ sets f' f =
 mapped ::
   Functor f =>
   Set (f a) (f b) a b
-mapped fi s =
-  
+mapped f =
+  sets fmap f -- Identity . fmap (getIdentity . f)
+
 set ::
   Set s t a b
   -> s
   -> b
   -> t
-set =
-  error "todo: set"
+set s' s b =
+  over s' (const b) s
 
 ----
 
@@ -169,8 +170,8 @@ foldMapT ::
   (a -> b)
   -> t a
   -> b
-foldMapT =
-  error "todo: foldMapT"
+foldMapT f =
+  getConst . traverse (Const . f)
 
 -- | Let's refactor out the call to @traverse@ as an argument to @foldMapT@.
 foldMapOf ::
@@ -178,8 +179,8 @@ foldMapOf ::
   -> (a -> r)
   -> s
   -> r
-foldMapOf =
-  error "todo: foldMapOf"
+foldMapOf g f =
+  getConst . g (Const . f)
 
 -- | Here is @foldMapT@ again, passing @traverse@ to @foldMapOf@.
 foldMapTAgain ::
@@ -188,7 +189,7 @@ foldMapTAgain ::
   -> t a
   -> b
 foldMapTAgain =
-  error "todo: foldMapTAgain"
+  foldMapOf traverse
 
 -- | Let's create a type-alias for this type of function.
 type Fold s t a b =
@@ -205,14 +206,14 @@ folds ::
   -> (a -> Const b a)
   -> s
   -> Const t s
-folds =
-  error "todo: folds"
+folds g f =
+  Const . g (getConst . f)
 
 folded ::
   Foldable f =>
-  Fold (f a) (f a) a a
-folded =
-  error "todo: folded"
+  Fold (f a) (f a) a a -- (a -> Const r a) -> f a -> Const r (f a)
+folded f =
+  Const . foldMap (getConst . f)
 
 ----
 
@@ -226,8 +227,8 @@ get ::
   Get a s a
   -> s
   -> a
-get =
-  error "todo: get"
+get g =
+  getConst . g Const
 
 ----
 
@@ -242,20 +243,24 @@ type Traversal s t a b =
 -- | Traverse both sides of a pair.
 both ::
   Traversal (a, a) (b, b) a b
-both =
-  error "todo: both"
+both g (a1, a2) =
+  (,) <$> g a1 <*> g a2
 
 -- | Traverse the left side of @Either@.
 traverseLeft ::
   Traversal (Either a x) (Either b x) a b
-traverseLeft =
-  error "todo: traverseLeft"
+traverseLeft g (Left a) =
+  Left <$> g a
+traverseLeft g (Right x) =
+  pure (Right x)
 
 -- | Traverse the right side of @Either@.
 traverseRight ::
   Traversal (Either x a) (Either x b) a b
-traverseRight =
-  error "todo: traverseRight"
+traverseRight g (Right a) =
+  Right <$> g a
+traverseRight g (Left x) =
+  pure (Left x)
 
 type Traversal' a b =
   Traversal a a b b
@@ -796,3 +801,15 @@ intOrLengthEven ::
   -> IntOr Bool
 intOrLengthEven =
   error "todo: intOrLengthEven"
+
+-- L a b
+-- L b c
+-- L a c
+
+-- (b -> f b) -> (a -> f a)
+-- .
+-- (c -> f c) -> (b -> f b)
+
+-- = 
+
+-- (c -> f c) -> (a -> f a)
