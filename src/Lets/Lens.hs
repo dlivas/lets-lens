@@ -157,8 +157,8 @@ set ::
   -> s
   -> b
   -> t
-set s' s b =
-  over s' (const b) s
+set l s b =
+  over l (const b) s
 
 ----
 
@@ -227,8 +227,8 @@ get ::
   Get a s a
   -> s
   -> a
-get g =
-  getConst . g Const
+get l =
+  getConst . l Const
 
 ----
 
