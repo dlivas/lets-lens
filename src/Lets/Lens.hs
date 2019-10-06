@@ -723,7 +723,7 @@ setStreet ::
   -> String
   -> Person
 setStreet =
-  set' $ addressL . streetL
+  set $ addressL . streetL
 
 -- |
 --
@@ -748,7 +748,7 @@ getAgeAndCountry =
 setCityAndLocality ::
   (Person, Address) -> (String, Locality) -> (Person, Address)
 setCityAndLocality =
-  set' $ addressL . localityL . cityL *** localityL
+  set $ addressL . localityL . cityL *** localityL
   
 -- |
 --
@@ -775,7 +775,7 @@ setStreetOrState ::
   -> String
   -> Either Person Locality
 setStreetOrState =
-  set' (addressL . streetL ||| stateL)
+  set (addressL . streetL ||| stateL)
 
 -- |
 --
@@ -812,7 +812,9 @@ modifyIntAndLengthEven =
 traverseLocality ::
   Traversal' Locality String
 traverseLocality =
-  error "todo: traverseLocality"
+  \f ->
+    \(Locality city state country) ->
+      Locality <$> f city <*> f state <*> f country
 
 -- |
 --
@@ -845,7 +847,15 @@ intOrLengthEven ::
   IntOr [a]
   -> IntOr Bool
 intOrLengthEven =
-  error "*** intOrLengthEven not implemeted"
+  error "*** not implemented intOrLengthEven"
+  -- intOrL %~ even . length
+
+intOrL ::
+  Traversal (IntOr a) (IntOr b) a b
+intOrL p (IntOrIsNot a) =
+  IntOrIsNot <$> p a
+intOrL _ (IntOrIs n) =
+  pure (IntOrIs n)
 
 -- L a b
 -- L b c
