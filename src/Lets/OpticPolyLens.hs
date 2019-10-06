@@ -388,8 +388,13 @@ choice ::
   Lens s t a b
   -> Lens q r a b
   -> Lens (Either s q) (Either t r) a b
-choice =
-  error "todo: choice"
+choice ls lq =
+  Lens
+    (\f ->
+      \e ->
+        case e of
+            Left s -> Left <$> fmodify ls f s
+            Right t -> Right <$> fmodify lq f t)
 
 -- | An alias for @choice@.
 (|||) ::
