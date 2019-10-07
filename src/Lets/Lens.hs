@@ -342,14 +342,6 @@ get' ::
 get' l =
   getConst . l Const
 
-set' ::
-  Lens s t a b
-  -> s
-  -> b
-  -> t
-set' l s b =
-  getIdentity (l (const (Identity b)) s)
-
 -- |
 --
 -- >>> modify fstL (+1) (0 :: Int, "abc")
@@ -366,8 +358,8 @@ modify ::
   -> (a -> b)
   -> s
   -> t
-modify l f s =
-  set' l s $ f (get' l s)
+modify =
+  over
 
 -- | An alias for @modify@.
 (%~) ::
@@ -396,8 +388,8 @@ infixr 4 %~
   -> b
   -> s
   -> t
-(.~) l b s =
-  set l s b
+(.~) l b =
+  over l (const b)
 
 infixl 5 .~
 
@@ -418,7 +410,7 @@ fmodify ::
   -> s
   -> f t 
 fmodify l f s =
-  set' l s <$> f (get' l s)
+  set l s <$> f (get' l s)
 
 -- |
 --
@@ -444,10 +436,8 @@ infixl 5 |=
 -- (30,"abc")
 fstL ::
   Lens (a, x) (b, x) a b
-fstL =
-  \f ->
-    \(a, x) ->
-      ((, x) <$> f a)
+fstL f (a, x) =
+  (, x) <$> f a
 
 -- |
 --
@@ -455,10 +445,8 @@ fstL =
 -- (13,"abcdef")
 sndL ::
   Lens (x, a) (x, b) a b
-sndL =
-  \f ->
-    \(x, a) ->
-      ((x, ) <$> f a)
+sndL f (x, a) =
+  (x, ) <$> f a
 
 -- |
 --
@@ -488,15 +476,13 @@ mapL ::
   Ord k =>
   k
   -> Lens (Map k v) (Map k v) (Maybe v) (Maybe v)
-mapL k =
-  \f ->
-    \m ->
-      (\v ->
-        case v of
-          Just v' -> Map.insert k v' m
-          Nothing -> Map.delete k m)
-      <$>
-      f (Map.lookup k m)
+mapL k f m =
+  (\v ->
+    case v of
+      Just v' -> Map.insert k v' m
+      Nothing -> Map.delete k m)
+  <$>
+  f (Map.lookup k m)
 
 -- |
 --
@@ -526,15 +512,13 @@ setL ::
   Ord k =>
   k
   -> Lens (Set.Set k) (Set.Set k) Bool Bool
-setL k =
-  \f ->
-    \s ->
-      (\b ->
-        if b
-          then Set.insert k s
-          else Set.delete k s)
-      <$>
-      f (Set.member k s)
+setL k f s =
+  (\b ->
+    if b
+      then Set.insert k s
+      else Set.delete k s)
+  <$>
+  f (Set.member k s)
 
 -- |
 --
@@ -583,15 +567,10 @@ product ::
   Lens s t a b
   -> Lens q r c d
   -> Lens (s, q) (t, r) (a, c) (b, d)
-product ls lq =
-  \f ->
-    \(s, q) ->
-      let
-        a = get' ls s
-        c = get' lq q
-        fbd = f (a, c)
-      in
-        (\(b, d) -> (set ls s b, set' lq q d)) <$> fbd
+product ls lq f (s, q) =
+  (\(b, d) -> ((ls .~ b) s, (lq .~ d) q))
+  <$>
+  f (get' ls s, get' lq q)
 
 -- | An alias for @product@.
 (***) ::
@@ -645,58 +624,58 @@ type Lens' a b =
 cityL ::
   Lens' Locality String
 cityL p (Locality c t y) =
-  fmap (\c' -> Locality c' t y) (p c)
+  (\c' -> Locality c' t y) <$> p c
 
 stateL ::
   Lens' Locality String
 stateL p (Locality c t y) =
-  fmap (\t' -> Locality c t' y) (p t)
+  (\t' -> Locality c t' y) <$> p t
 
 countryL ::
   Lens' Locality String
 countryL p (Locality c t y) =
-  fmap (\y' -> Locality c t y') (p y)
+  (\y' -> Locality c t y') <$> p y
 
 streetL ::
   Lens' Address String
 streetL p (Address t s l) =
-  fmap (\t' -> Address t' s l) (p t)
+  (\t' -> Address t' s l) <$> p t
 
 suburbL ::
   Lens' Address String
 suburbL p (Address t s l) =
-  fmap (\s' -> Address t s' l) (p s)
+  (\s' -> Address t s' l) <$> p s
 
 localityL ::
   Lens' Address Locality
 localityL p (Address t s l) =
-  fmap (\l' -> Address t s l') (p l)
+  (\l' -> Address t s l') <$> p l
 
 ageL ::
   Lens' Person Int
 ageL p (Person a n d) =
-  fmap (\a' -> Person a' n d) (p a)
+  (\a' -> Person a' n d) <$> p a
 
 nameL ::
   Lens' Person String
 nameL p (Person a n d) =
-  fmap (\n' -> Person a n' d) (p n)
+  (\n' -> Person a n' d) <$> p n
 
 addressL ::
   Lens' Person Address
 addressL p (Person a n d) =
-  fmap (\d' -> Person a n d') (p d)
+  (\d' -> Person a n d') <$> p d
 
 intAndIntL ::
   Lens' (IntAnd a) Int
 intAndIntL p (IntAnd n a) =
-  fmap (\n' -> IntAnd n' a) (p n)
+  (\n' -> IntAnd n' a) <$> p n
 
 -- lens for polymorphic update
 intAndL ::
   Lens (IntAnd a) (IntAnd b) a b
 intAndL p (IntAnd n a) =
-  fmap (\a' -> IntAnd n a') (p a)
+  (\a' -> IntAnd n a') <$> p a
 
 -- |
 --
@@ -811,10 +790,8 @@ modifyIntAndLengthEven =
 -- Locality "ABC" "DEF" "GHI"
 traverseLocality ::
   Traversal' Locality String
-traverseLocality =
-  \f ->
-    \(Locality city state country) ->
-      Locality <$> f city <*> f state <*> f country
+traverseLocality f (Locality city state country) =
+  Locality <$> f city <*> f state <*> f country
 
 -- |
 --
@@ -847,8 +824,7 @@ intOrLengthEven ::
   IntOr [a]
   -> IntOr Bool
 intOrLengthEven =
-  error "*** not implemented intOrLengthEven"
-  -- intOrL %~ even . length
+  over intOrL (even . length)
 
 intOrL ::
   Traversal (IntOr a) (IntOr b) a b
