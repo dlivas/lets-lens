@@ -280,6 +280,13 @@ type Lens s t a b =
   -> s
   -> f t
 
+(^.) ::
+  Lens s t a b
+  -> s
+  -> a
+(^.) l =
+  getConst . l Const
+
 ----
 
 -- | A prism is a less specific type of traversal.
@@ -334,13 +341,6 @@ type Prism' a b =
   Prism a a b b
 
 ----
-
-get' ::
-  Lens s t a b
-  -> s
-  -> a
-get' l =
-  getConst . l Const
 
 -- |
 --
@@ -410,7 +410,7 @@ fmodify ::
   -> s
   -> f t 
 fmodify l f s =
-  set l s <$> f (get' l s)
+  set l s <$> f (l ^. s)
 
 -- |
 --
@@ -570,7 +570,7 @@ product ::
 product ls lq f (s, q) =
   (\(b, d) -> ((ls .~ b) s, (lq .~ d) q))
   <$>
-  f (get' ls s, get' lq q)
+  f (ls ^. s, lq ^. q)
 
 -- | An alias for @product@.
 (***) ::
@@ -599,12 +599,10 @@ choice ::
   Lens s t a b
   -> Lens q r a b
   -> Lens (Either s q) (Either t r) a b
-choice ls lq =
-  \f ->
-    \e ->
-      case e of
-          Left s -> Left <$> fmodify ls f s
-          Right t -> Right <$> fmodify lq f t
+choice ls lq f (Left s) =
+  Left <$> fmodify ls f s
+choice ls lq f (Right t) =
+  Right <$> fmodify lq f t
 
 -- | An alias for @choice@.
 (|||) ::
