@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module Lets.Data (
   Locality(..)
 , Address(..)
@@ -116,6 +118,10 @@ data Const a b =
   deriving (Eq, Show)
 
 instance Functor (Const a) where
+  fmap ::
+    (a' -> b')
+    -> (Const a a')
+    -> (Const a b')
   fmap _ (Const a) =
     Const a
 
