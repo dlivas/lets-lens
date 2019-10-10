@@ -126,8 +126,15 @@ instance Functor (Const a) where
     Const a
 
 instance Monoid a => Applicative (Const a) where
+  pure ::
+    r
+    -> Const a r
   pure _ =
     Const mempty
+  (<*>) ::
+    Const a (a' -> b')
+    -> Const a a'
+    -> Const a b'
   Const f <*> Const a =
     Const (f `mappend` a)
 

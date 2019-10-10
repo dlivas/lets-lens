@@ -299,29 +299,36 @@ type Prism s t a b =
 _Left ::
   Prism (Either a x) (Either b x) a b
 _Left =
-  error "todo: _Left"
+  prism Left $ either Right (Left . Right)
 
 _Right ::
   Prism (Either x a) (Either x b) a b 
 _Right =
-  error "todo: _Right"
+  prism Right $ either (Left . Left) Right
 
 prism ::
   (b -> t)
   -> (s -> Either t a)
   -> Prism s t a b
-prism =
-  error "todo: prism"
+prism bt seta =
+  dimap seta (either pure (fmap bt)) . right
+
+prism' ::
+  (b -> s)
+  -> (s -> Maybe a)
+  -> Prism s s a b
+prism' bs sma =
+  prism bs (\s -> maybe (Left s) Right (sma s))
 
 _Just ::
   Prism (Maybe a) (Maybe b) a b
 _Just =
-  error "todo: _Just"
+  prism Just $ maybe (Left Nothing) Right
 
 _Nothing ::
   Prism (Maybe a) (Maybe a) () ()
 _Nothing =
-  error "todo: _Nothing"
+  prism' (const Nothing) $ maybe (Just ()) (const Nothing)
 
 setP ::
   Prism s t a b
@@ -807,6 +814,14 @@ intOrP ::
   Prism (IntOr a) (IntOr b) a b
 intOrP =
   error "todo: intOrP"
+
+
+-- prism :: (b -> t) -> (s -> Either t a) -> Prism s t a b
+-- prism bt seta = dimap seta (either pure (fmap bt)) . right
+
+-- prism' :: (b -> s) -> (s -> Maybe a) -> Prism s s a b
+-- prism' bs sma = prism bs (\s -> maybe (Left s) Right (sma s))
+
 
 -- |
 --
